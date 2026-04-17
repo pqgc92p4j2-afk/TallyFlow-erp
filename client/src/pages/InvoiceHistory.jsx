@@ -4,7 +4,7 @@ import { invoiceAPI } from '../services/api';
 import { FiSearch, FiFilter, FiEye, FiCheck, FiX, FiCalendar, FiTrendingUp } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
-const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export default function InvoiceHistory() {
   const [invoices, setInvoices] = useState([]);
