@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { invoiceAPI } from '../services/api';
-import { FiSearch, FiFilter, FiEye, FiCheck, FiX, FiCalendar, FiTrendingUp } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiEye, FiCheck, FiX, FiCalendar, FiTrendingUp, FiRefreshCw } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -153,6 +153,7 @@ export default function InvoiceHistory() {
                       </button>
                       {inv.status === 'draft' && <button className="btn btn-ghost btn-icon" title="Mark Paid" onClick={() => handleStatusChange(inv._id, 'paid')} style={{ color: 'var(--success)' }}><FiCheck /></button>}
                       {inv.status !== 'cancelled' && inv.status !== 'paid' && <button className="btn btn-ghost btn-icon" title="Cancel" onClick={() => handleStatusChange(inv._id, 'cancelled')} style={{ color: 'var(--danger)' }}><FiX /></button>}
+                      {inv.status === 'cancelled' && <button className="btn btn-ghost btn-icon" title="Reactive Bill" onClick={() => handleStatusChange(inv._id, 'sent')} style={{ color: 'var(--accent)' }}><FiRefreshCw /></button>}
                     </div>
                   </td>
                 </tr>

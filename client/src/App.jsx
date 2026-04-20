@@ -22,6 +22,7 @@ import InvoiceHistory from './pages/InvoiceHistory';
 import AdminPanel from './pages/AdminPanel';
 import CustomerStatement from './pages/CustomerStatement';
 import History from './pages/History';
+import ITRComputation from './pages/ITRComputation';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useSelector((state) => state.auth);
@@ -74,6 +75,7 @@ function App() {
         <Route path="products" element={<ProductsPage />} />
         <Route path="invoice-history" element={<InvoiceHistory />} />
         <Route path="admin" element={<AdminPanel />} />
+        <Route path="itr-computation" element={<ITRComputation />} />
         <Route path="company" element={<CompanySetup />} />
       </Route>
     </Routes>

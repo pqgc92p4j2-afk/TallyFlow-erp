@@ -33,6 +33,9 @@ const navItems = [
     { path: '/reports/profit-loss', label: 'Profit & Loss', icon: FiTrendingUp },
     { path: '/reports/day-book', label: 'Day Book', icon: FiCalendar },
   ]},
+  { section: 'Taxation', items: [
+    { path: '/itr-computation', label: 'ITR Computation', icon: FiFileText },
+  ]},
   { section: 'Admin', items: [
     { path: '/admin', label: 'Admin Panel', icon: FiShield },
   ]},

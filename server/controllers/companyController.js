@@ -66,6 +66,78 @@ const seedDefaultLedgers = async (companyId) => {
   for (const l of defaultLedgers) { await Ledger.create(l); }
 };
 
+const syncBankLedgers = async (companyId, bankAccounts) => {
+  try {
+    if (!bankAccounts || !Array.isArray(bankAccounts)) return;
+    
+    // 1. Find or Create "Bank Accounts" group (case-insensitive)
+    let bankGroup = await AccountGroup.findOne({ 
+      company: companyId, 
+      name: { $regex: /^bank accounts$/i } 
+    });
+
+    if (!bankGroup) {
+      // If missing, find "Current Assets" as parent
+      const assetsGroup = await AccountGroup.findOne({ company: companyId, name: { $regex: /^current assets$/i } });
+      bankGroup = await AccountGroup.create({
+        name: 'Bank Accounts',
+        parent: assetsGroup ? assetsGroup._id : null,
+        nature: 'Assets',
+        company: companyId,
+        isDefault: true
+      });
+    }
+
+    const matchedLedgerIds = [];
+
+    for (const bank of bankAccounts) {
+      if (!bank.bankName) continue;
+
+      // Robust search: Check by accountNumber OR current Name
+      let ledger = await Ledger.findOne({
+        company: companyId,
+        $or: [
+          { accountNumber: bank.accountNumber, accountNumber: { $exists: true, $ne: '' } },
+          { name: bank.bankName }
+        ]
+      });
+
+      const ledgerData = {
+        name: bank.bankName,
+        group: bankGroup._id,
+        company: companyId,
+        bankName: bank.bankName,
+        accountNumber: bank.accountNumber,
+        ifscCode: bank.ifscCode,
+        branchName: bank.branch,
+        isActive: true
+      };
+
+      if (ledger) {
+        const updated = await Ledger.findByIdAndUpdate(ledger._id, ledgerData, { new: true });
+        matchedLedgerIds.push(updated._id.toString());
+      } else {
+        const newLedger = await Ledger.create(ledgerData);
+        matchedLedgerIds.push(newLedger._id.toString());
+      }
+    }
+
+    // 2. Soft-delete ledgers in "Bank Accounts" group that are no longer in profile
+    await Ledger.updateMany(
+      { 
+        company: companyId, 
+        group: bankGroup._id, 
+        _id: { $nin: matchedLedgerIds } 
+      },
+      { isActive: false }
+    );
+
+  } catch (error) {
+    console.error('CRITICAL: syncBankLedgers failed:', error.message);
+    // Don't throw error to avoid breaking the profile save, but log it
+  }
+};
+
 const createCompany = async (req, res) => {
   try {
     req.body.createdBy = req.user._id;
@@ -73,6 +145,12 @@ const createCompany = async (req, res) => {
     await User.findByIdAndUpdate(req.user._id, { $push: { companies: company._id }, activeCompany: company._id });
     await seedDefaultGroups(company._id);
     await seedDefaultLedgers(company._id);
+    
+    // Sync initial Bank Accounts if provided
+    if (req.body.bankAccounts) {
+      await syncBankLedgers(company._id, req.body.bankAccounts);
+    }
+    
     res.status(201).json({ success: true, data: company });
   } catch (error) {
     console.error('Create company error:', error.message);
@@ -98,8 +176,15 @@ const getCompany = async (req, res) => {
 
 const updateCompany = async (req, res) => {
   try {
+    const { bankAccounts } = req.body;
     const company = await Company.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!company) return res.status(404).json({ message: 'Company not found' });
+    
+    // Sync Bank Accounts to Ledgers
+    if (bankAccounts) {
+      await syncBankLedgers(company._id, bankAccounts);
+    }
+    
     res.json({ success: true, data: company });
   } catch (error) { res.status(500).json({ message: error.message }); }
 };

@@ -181,7 +181,6 @@ export default function VoucherForm() {
             <h1 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {tc.label}
             </h1>
-            <p>{isSingleEntry ? 'Single-entry simplified mode' : 'Double-entry professional mode'}</p>
           </div>
         </div>
         
@@ -213,20 +212,13 @@ export default function VoucherForm() {
           </div>
         )}
 
-        <div className="mode-toggle">
-          <button type="button" 
-            className={`btn btn-sm ${isSingleEntry ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setIsSingleEntry(true)}>Single Entry</button>
-          <button type="button" 
-            className={`btn btn-sm ${!isSingleEntry ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setIsSingleEntry(false)}>Double Entry</button>
-        </div>
+
       </div>
 
       <form onSubmit={handleSubmit}>
         <div className="voucher-form">
-          <div className="voucher-form-header" style={{ background: tc.bg }}>
-            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <div className="voucher-form-header" style={{ background: tc.bg, padding: '20px', display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', flex: 1 }}>
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label">Date</label>
                 <input type="date" className="form-input" style={{ width: '160px' }}
@@ -261,11 +253,14 @@ export default function VoucherForm() {
                   </div>
                   {(voucherType === 'Receipt' && paymentMode !== 'Cash' && paymentMode !== 'Bill') && (
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label">Incoming Bank</label>
+                      <label className="form-label">Bank</label>
                       <select className="form-select" style={{ width: '220px', borderColor: 'var(--accent)', borderWidth: '2px' }}
                         value={primaryLedger} onChange={e => setPrimaryLedger(e.target.value)} required>
-                        <option value="">— Select Bank —</option>
-                        {ledgers.filter(l => l.group?.name === 'Bank Accounts').map(l => (
+                        <option value="">— Select Bank Account —</option>
+                        {ledgers.filter(l => 
+                          (l.group?.name?.toLowerCase().includes('bank') || l.accountNumber) && 
+                          l.isActive !== false
+                        ).map(l => (
                           <option key={l._id} value={l._id}>{l.name}</option>
                         ))}
                       </select>

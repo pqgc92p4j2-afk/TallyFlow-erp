@@ -124,14 +124,38 @@ const updateInvoice = async (req, res) => {
 const updateInvoiceStatus = async (req, res) => {
   try {
     const { status, paidAmount } = req.body;
+    const oldInvoice = await Invoice.findById(req.params.id);
+    if (!oldInvoice) return res.status(404).json({ message: 'Invoice not found' });
+
     const update = { status };
     if (paidAmount !== undefined) update.paidAmount = paidAmount;
+    
     const invoice = await Invoice.findByIdAndUpdate(req.params.id, update, { new: true });
-    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
 
-    if (status === 'paid' && invoice.customer) {
-      await Customer.findByIdAndUpdate(invoice.customer, { $inc: { totalPaid: invoice.grandTotal } });
+    // Sync Account status with Voucher
+    const voucherQuery = { voucherNumber: `INV-${invoice.invoiceNumber}`, company: req.user.activeCompany };
+    
+    if (status === 'cancelled') {
+        // Cancel the corresponding Sales Voucher
+        await Voucher.findOneAndUpdate(voucherQuery, { isCancelled: true });
+        
+        // If it was previously 'paid', reverse the customer balance impact
+        if (oldInvoice.status === 'paid' && invoice.customer) {
+            await Customer.findByIdAndUpdate(invoice.customer, { $inc: { totalPaid: -oldInvoice.grandTotal } });
+        }
+    } else if (oldInvoice.status === 'cancelled' && (status === 'sent' || status === 'paid' || status === 'overdue')) {
+        // Reactivate the corresponding Sales Voucher
+        await Voucher.findOneAndUpdate(voucherQuery, { isCancelled: false });
+        
+        // If reactivating as 'paid', handle balance
+        if (status === 'paid' && invoice.customer) {
+            await Customer.findByIdAndUpdate(invoice.customer, { $inc: { totalPaid: invoice.grandTotal } });
+        }
+    } else if (status === 'paid' && oldInvoice.status !== 'paid' && invoice.customer) {
+        // Standard paid transition
+        await Customer.findByIdAndUpdate(invoice.customer, { $inc: { totalPaid: invoice.grandTotal } });
     }
+
     res.json({ success: true, data: invoice });
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
